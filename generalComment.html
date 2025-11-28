@@ -1,0 +1,125 @@
+<style>
+.private-msg-box, .admin-box {
+    max-width: 500px;
+    font-family: Arial, sans-serif;
+    margin-bottom: 20px;
+}
+.input-field, .reply-text {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+}
+.send-btn, .send-reply-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background: black;
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.send-btn:hover, .send-reply-btn:hover { opacity: 0.8; }
+
+.msg, .client-msg, .admin-msg {
+    background: #f1f1f1;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+}
+.admin-msg {
+    background: #d1e7dd;
+}
+</style>
+
+<!-- Форма для клиента -->
+<div class="private-msg-box">
+    <h3>Написать сообщение</h3>
+    <textarea id="clientMsg" class="input-field" placeholder="Введите ваше сообщение..."></textarea>
+    <button class="send-btn" onclick="sendClientMsg()">Отправить</button>
+    <h4>Ваш диалог с админом:</h4>
+    <div id="clientChat"></div>
+</div>
+
+<!-- Админ-панель -->
+<div class="admin-box">
+    <h3>Админ-панель сообщений</h3>
+    <div id="adminList"></div>
+</div>
+
+<script>
+// Хранилище сообщений
+// messages = [{id, text, time, fromAdmin, replied}]
+let messages = JSON.parse(localStorage.getItem("siteMessages") || "[]");
+
+// Функция для клиента
+function sendClientMsg() {
+    let text = document.getElementById("clientMsg").value.trim();
+    if(text === "") return;
+
+    messages.push({
+        id: Date.now(),
+        text: text,
+        time: new Date().toLocaleString(),
+        fromAdmin: false
+    });
+
+    localStorage.setItem("siteMessages", JSON.stringify(messages));
+    document.getElementById("clientMsg").value = "";
+    loadClientChat();
+    loadAdminPanel();
+}
+
+// Показ чата клиенту
+function loadClientChat() {
+    let html = "";
+    messages.forEach(m => {
+        if(m.fromAdmin){
+            html += `<div class="admin-msg"><strong>Админ:</strong> ${m.text}<br><small>${m.time}</small></div>`;
+        } else {
+            html += `<div class="client-msg"><strong>Вы:</strong> ${m.text}<br><small>${m.time}</small></div>`;
+        }
+    });
+    document.getElementById("clientChat").innerHTML = html;
+}
+
+// Показ сообщений в админ-панели
+function loadAdminPanel() {
+    let html = "";
+    messages.forEach((m,i) => {
+        if(!m.fromAdmin){
+            html += `
+                <div class="msg">
+                    <p><strong>Клиент:</strong> ${m.text}</p>
+                    <small>${m.time}</small>
+                    <input type="text" class="reply-text" id="reply${i}" placeholder="Ответить клиенту...">
+                    <button class="send-reply-btn" onclick="sendAdminReply(${i})">Ответить</button>
+                </div>`;
+        }
+    });
+    document.getElementById("adminList").innerHTML = html;
+}
+
+// Отправка ответа админа
+function sendAdminReply(i){
+    let reply = document.getElementById(`reply${i}`).value.trim();
+    if(reply === "") return;
+
+    messages.push({
+        id: Date.now(),
+        text: reply,
+        time: new Date().toLocaleString(),
+        fromAdmin: true
+    });
+
+    localStorage.setItem("siteMessages", JSON.stringify(messages));
+    document.getElementById(`reply${i}`).value = "";
+    loadAdminPanel();
+    loadClientChat();
+}
+
+// Загружаем при открытии страницы
+loadClientChat();
+loadAdminPanel();
+</script>
