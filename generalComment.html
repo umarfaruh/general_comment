@@ -1,4 +1,194 @@
 <style>
+    .tiktok-comments {
+        width: 500px;
+        margin-left: 0;
+        font-family: Arial, sans-serif;
+    }
+
+    .comment-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 25px;
+        font-size: 15px;
+        outline: none;
+        margin-bottom: 10px;
+    }
+
+    .send-btn {
+        width: 100%;
+        padding: 12px;
+        background: #000;
+        color: #fff;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+    .send-btn:hover { opacity: 0.8; }
+
+    .comment {
+        margin-bottom: 15px;
+    }
+
+    .comment-bubble {
+        background: #f1f1f1;
+        padding: 12px 15px;
+        border-radius: 15px;
+        font-size: 16px;
+        line-height: 1.4;
+        word-break: break-word;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .reply-block {
+        margin-left: 25px;
+        margin-top: 10px;
+    }
+
+    .action-row {
+        display: flex;
+        gap: 15px;
+        margin-top: 6px;
+        font-size: 14px;
+        color: #555;
+    }
+
+    .action-btn {
+        cursor: pointer;
+    }
+
+    @keyframes fadeIn {
+        from {opacity: 0; transform: translateY(5px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+</style>
+
+<div class="tiktok-comments">
+    <h3>Комментарий</h3>
+
+    <textarea id="mainCommentInput" class="comment-input" placeholder="Напишите комментарий..."></textarea>
+    <button class="send-btn" onclick="sendComment()">Отправить</button>
+
+    <div id="commentsList"></div>
+</div>
+
+<script>
+    let replyTo = null; 
+
+    window.onload = function() {
+        loadComments();
+    };
+
+    function sendComment() {
+        let text = document.getElementById("mainCommentInput").value.trim();
+        if (text === "") return;
+
+        let comments = JSON.parse(localStorage.getItem("tiktokComments2") || "[]");
+
+        if (!replyTo) {
+            comments.push({
+                id: Date.now(),
+                text: text,
+                likes: 0,
+                time: new Date().toLocaleTimeString(),
+                replies: []
+            });
+        } else {
+            let parent = comments.find(c => c.id === replyTo);
+            parent.replies.push({
+                id: Date.now(),
+                text: text,
+                likes: 0,
+                time: new Date().toLocaleTimeString()
+            });
+            replyTo = null;
+        }
+
+        localStorage.setItem("tiktokComments2", JSON.stringify(comments));
+        document.getElementById("mainCommentInput").value = "";
+        loadComments();
+    }
+
+    function likeComment(id, isReply=false, parentId=null) {
+        let comments = JSON.parse(localStorage.getItem("tiktokComments2") || "[]");
+
+        if (!isReply) {
+            let c = comments.find(c => c.id === id);
+            c.likes++;
+        } else {
+            let parent = comments.find(c => c.id === parentId);
+            let r = parent.replies.find(r => r.id === id);
+            r.likes++;
+        }
+
+        localStorage.setItem("tiktokComments2", JSON.stringify(comments));
+        loadComments();
+    }
+
+    function deleteComment(id, isReply=false, parentId=null) {
+        let comments = JSON.parse(localStorage.getItem("tiktokComments2") || "[]");
+
+        if (!isReply) {
+            comments = comments.filter(c => c.id !== id);
+        } else {
+            let parent = comments.find(c => c.id === parentId);
+            parent.replies = parent.replies.filter(r => r.id !== id);
+        }
+
+        localStorage.setItem("tiktokComments2", JSON.stringify(comments));
+        loadComments();
+    }
+
+    function replyToComment(id) {
+        replyTo = id;
+        document.getElementById("mainCommentInput").focus();
+        document.getElementById("mainCommentInput").placeholder = "Ответить...";
+    }
+
+    function loadComments() {
+        let comments = JSON.parse(localStorage.getItem("tiktokComments2") || "[]");
+        let html = "";
+
+        comments.slice().reverse().forEach(c => {
+            html += `
+                <div class="comment">
+                    <div class="comment-bubble">${c.text}</div>
+                    <div class="action-row">
+                        <span class="action-btn" onclick="likeComment(${c.id})">❤️ ${c.likes}</span>
+                        <span class="action-btn" onclick="replyToComment(${c.id})">Ответить</span>
+                        <span class="action-btn" onclick="deleteComment(${c.id})">🗑 Удалить</span>
+                        <span style="color:#777;">${c.time}</span>
+                    </div>
+
+                    ${c.replies.slice().reverse().map(r => `
+                        <div class="reply-block">
+                            <div class="comment-bubble">${r.text}</div>
+                            <div class="action-row">
+                                <span class="action-btn" onclick="likeComment(${r.id}, true, ${c.id})">❤️ ${r.likes}</span>
+                                <span class="action-btn" onclick="deleteComment(${r.id}, true, ${c.id})">🗑 Удалить</span>
+                                <span style="color:#777;">${r.time}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        });
+
+        document.getElementById("commentsList").innerHTML = html;
+        document.getElementById("mainCommentInput").placeholder = "Напишите комментарий...";
+    }
+</script>
+
+
+
+
+
+
+
+
+
+<style>
 .private-msg-box, .admin-box {
     max-width: 500px;
     font-family: Arial, sans-serif;
